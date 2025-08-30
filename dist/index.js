@@ -6,15 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
-const routes_1 = __importDefault(require("./src/routes"));
+const routes_1 = __importDefault(require("./routes"));
 const app = (0, express_1.default)();
-const port = process.env.PORT || 3000;
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, morgan_1.default)('dev'));
 app.use(routes_1.default);
-app.listen(port, () => process.env.NODE_ENV === 'development'
-    ? console.log(`Server on http://localhost:${port}`)
-    : null);
+app.listen(process.env.PORT || 3000);
 exports.default = app;

@@ -1,8 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import router from './src/routes';
-import { port } from './src/config';
+import router from './routes/index';
 
 const app = express();
 
@@ -12,6 +11,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(router);
 
-app.listen(port);
+app.listen(process.env.PORT || 3000);
 
 export default app;

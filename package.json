@@ -2,10 +2,10 @@
   "name": "squirrell-api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "./src/index.ts",
   "scripts": {
     "build": "tsc",
-    "start": "cross-env NODE_ENV=production node index.ts",
+    "start": "cross-env NODE_ENV=production node ./src/index.ts",
     "dev": "cross-env NODE_ENV=development nodemon",
     "migrate:generate": "sequelize-cli migration:generate --name",
     "migrate:up": "sequelize-cli db:migrate --env",
