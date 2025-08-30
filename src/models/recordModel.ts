@@ -8,7 +8,7 @@ import {
   BelongsTo,
   ForeignKey
 } from 'sequelize-typescript';
-import Fund from './fund';
+import Fund from './fundModel';
   
 @Table({ timestamps: false })
   

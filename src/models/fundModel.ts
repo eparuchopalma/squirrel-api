@@ -7,7 +7,7 @@ import {
   Default,
   HasMany
 } from 'sequelize-typescript';
-import Record from './record';
+import Record from './recordModel';
 
 @Table({ timestamps: false })
 
