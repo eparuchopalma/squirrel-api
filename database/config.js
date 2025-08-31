@@ -1,6 +1,8 @@
 import dotenv from 'dotenv'
 
-dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
+console.log(process.env.NODE_ENV)
+
+dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development' }` });
 
 export default {
   database: process.env.DB_NAME,
@@ -9,4 +11,7 @@ export default {
   password: process.env.DB_PASSWORD,
   port: Number(process.env.DB_PORT),
   username: process.env.DB_USER,
+  dialectOptions: {
+    ssl: process.env.NODE_ENV === 'production'
+  }
 };
