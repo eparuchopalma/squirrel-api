@@ -9,7 +9,10 @@ const sequelize = new Sequelize({
   dialect: 'postgres',
   dialectModule: pg,
   logging: console.log,
-  models: [Fund, Record]
+  models: [Fund, Record],
+  dialectOptions: {
+    ssl: process.env.NODE_ENV === 'production'
+  }
 });
 
 export default sequelize;
