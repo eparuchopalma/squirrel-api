@@ -10,12 +10,12 @@ import {
 } from 'sequelize-typescript';
 import Fund from './fundModel';
   
-@Table({ timestamps: false })
-  
-class Record extends Model {
-  @Column
+@Table({ tableName: 'records', timestamps: false })
+
+  class Record extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
+  @Column
   id!: string;
 
   @Column({ allowNull: false })
@@ -36,12 +36,12 @@ class Record extends Model {
   @Column({ allowNull: false })
   user_id!: string;
 
-  @Column({ allowNull: false })
   @ForeignKey(() => Fund)
+  @Column({ allowNull: false })
   fund_id!: string;
 
-  @Column
   @ForeignKey(() => Fund)
+  @Column
   correlated_fund_id?: string;
 
   @BelongsTo(() => Fund)
@@ -50,5 +50,4 @@ class Record extends Model {
   @BelongsTo(() => Fund, 'correlated_fund_id')
   correlatedFund?: Fund;
 }
-
-export default Record;
+  export default Record;

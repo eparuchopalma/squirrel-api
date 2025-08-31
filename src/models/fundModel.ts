@@ -9,19 +9,19 @@ import {
 } from 'sequelize-typescript';
 import Record from './recordModel';
 
-@Table({ timestamps: false })
+@Table({ tableName: 'funds', timestamps: false })
 
 class Fund extends Model {
-  @Column
   @PrimaryKey
   @Default(DataType.UUIDV4)
+  @Column
   id!: string;
 
   @Column({ allowNull: false })
   name!: string;
 
-  @Column({ allowNull: false })
   @Default(0)
+  @Column({ allowNull: false })
   balance!: number;
 
   @Column({ allowNull: false })
