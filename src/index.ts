@@ -18,19 +18,18 @@ const initializeDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connected.');
-
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('Database models synchronized.');
-    }
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    throw new Error('Unable to connect to the database.');
   }
 };
 
 const startServer = async () => {
-  await initializeDatabase();
-  app.listen(process.env.PORT || 3000, () => console.log(`Up on port ${process.env.PORT || 3000}`));
+  try {
+    await initializeDatabase();
+    app.listen(process.env.PORT || 3000, () => console.log(`Up on port ${process.env.PORT || 3000}`));
+  } catch (error) {
+    return console.error(error);
+  }
 };
 
 startServer();
