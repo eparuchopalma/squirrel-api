@@ -5,8 +5,8 @@ const router = express.Router();
 const fundService = new FundService();
 
 router.get('/', (req, res, next) => {
-  const user_id = process.env.DEMO_USER;
-  fundService.read({ user_id })
+  const payload = req.body;
+  fundService.read(payload)
     .then((data) => res.json(data))
     .catch((error) => next(error))
 });

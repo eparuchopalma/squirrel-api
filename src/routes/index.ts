@@ -1,12 +1,13 @@
 import express from 'express';
 import { bodyValidator } from '../middleware/requestValidator';
+import authenticator from '../middleware/authenticator';
 import fundRouter from './fundRouter';
 
 const router = express.Router();
 
-router.use('/', bodyValidator);
+router.use('/', bodyValidator, authenticator);
 
-router.use('/api{/public}/fund', fundRouter);
+router.use('{/public}/fund', fundRouter);
 
 router.use('/', (req, res) => res.sendStatus(404));
 
