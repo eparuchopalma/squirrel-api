@@ -2,12 +2,26 @@ import express from 'express';
 import FundService from '../services/fundService';
 
 const router = express.Router();
-const fundService = new FundService();
+const { read, update, create } = new FundService();
 
 router.get('/', (req, res, next) => {
   const payload = req.body;
-  fundService.read(payload)
+  read(payload)
     .then((data) => res.json(data))
+    .catch((error) => next(error))
+});
+
+router.patch('/:id', (req, res, next) => {
+  const payload = { ...req.body, id: req.params.id };
+  update(payload)
+    .then((data) => res.sendStatus(204))
+    .catch((error) => next(error))
+});
+
+router.post('/', (req, res, next) => {
+  const payload = req.body;
+  create(payload)
+    .then((data) => res.status(201).json(data))
     .catch((error) => next(error))
 });
 

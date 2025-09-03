@@ -10,7 +10,6 @@ import {
 import Record from './recordModel';
 
 @Table({ tableName: 'funds', timestamps: false })
-
 class Fund extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
@@ -26,7 +25,8 @@ class Fund extends Model {
 
   @Column({ allowNull: false })
   user_id!: string;
-
+  
+  @Default(false)
   @Column({ allowNull: false })
   is_main!: boolean;
 

@@ -12,6 +12,14 @@ class FundService {
       where: { user_id },
     })
   }
+
+  public update({ id, user_id, ...fields }: Partial<fundModel>) {
+    return Fund!.update(fields, { where: { id, user_id } });
+  }
+
+  public create(fields: Partial<fundModel>) {
+    return Fund!.create(fields, { returning: false });
+  }
 }
 
 export default FundService;

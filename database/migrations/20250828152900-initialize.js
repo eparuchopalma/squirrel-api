@@ -8,7 +8,7 @@ module.exports = {
       id: { type: DataType.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
       name: { type: DataType.STRING, allowNull: false },
       balance: { type: DataType.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
-      is_main: { type: DataType.BOOLEAN, allowNull: false },
+      is_main: { type: DataType.BOOLEAN, allowNull: false, defaultValue: false },
       user_id: { type: DataType.STRING, allowNull: false },
     });
 
