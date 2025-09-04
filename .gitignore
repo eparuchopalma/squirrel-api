@@ -1,7 +1,8 @@
 node_modules
-database/postgres_data
 
 .env.development
 .env.production
 
+.dist
 .vscode
+.postgres_data

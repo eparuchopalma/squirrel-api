@@ -25,8 +25,9 @@ const initializeDatabase = async () => {
 
 const startServer = async () => {
   try {
+    const port = process.env.PORT || 3000;
     await initializeDatabase();
-    app.listen(process.env.PORT || 3000, () => console.log(`Up on port ${process.env.PORT || 3000}`));
+    app.listen(port, () => console.log(`Server on port ${port}`));
   } catch (error) {
     return console.error(error);
   }
