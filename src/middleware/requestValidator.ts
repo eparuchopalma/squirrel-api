@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { SchemaValidator } from '../types';
 import Fund from '../models/fundModel';
 import Record from '../models/recordModel';
 
@@ -7,28 +8,27 @@ export function bodyValidator(req: Request, res: Response, next: NextFunction) {
   else next();
 };
 
-type SchemaValidator<T> = {
-  [K in keyof T]: (value: any) => boolean;
-};
-
-export function validateSchema(schema: Partial<SchemaValidator<Fund | Record>>, requestKey: keyof Request = 'body') {
+export function validateSchema(schemaValidator: SchemaValidator<Fund | Record>) {
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const body = req.body;
-    const invalidKey = Object.keys(body)
+  const payloadKeys = Object.keys(schemaValidator) as ('body' | 'params' | 'query')[];
+  
+  for (const payloadKey of payloadKeys) {
+    const schema = schemaValidator[payloadKey] as SchemaValidator<Fund | Record>;
+    const payload = req[payloadKey];
+    const invalidKey = Object.keys(payload)
       .find(key => !(key in schema));
 
-    if (invalidKey) return res
-      .status(400)
-      .json({ message: `Invalid key: "${invalidKey}"` });
+    if (invalidKey)  return res.status(400).json({ message: `Invalid key: "${invalidKey}"`});
 
-    const invalidValue = Object.entries(schema)
-      .find(([key, isInvalid]) => isInvalid(body[key]));
+    const invalidValue = Object.entries(schema).find(([key, value]) => {
+      const validator = value as (val: any) => boolean;
+      return validator(payload[key]);
+    });
 
-    if (invalidValue) return res
-      .status(400)
-      .json({ message: `Invalid value for: "${invalidValue[0]}"` });
-
-    next();
+    if (invalidValue) return res.status(400).json({ message: `Invalid value for: "${invalidValue[0]}"`});
   }
+  console.log('validation passed');
+  next()
+}
 };
