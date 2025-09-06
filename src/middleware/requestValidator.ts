@@ -11,24 +11,28 @@ export function bodyValidator(req: Request, res: Response, next: NextFunction) {
 export function validateSchema(schemaValidator: SchemaValidator<Fund | Record>) {
 
   return (req: Request, res: Response, next: NextFunction) => {
-  const payloadKeys = Object.keys(schemaValidator) as ('body' | 'params' | 'query')[];
-  
-  for (const payloadKey of payloadKeys) {
-    const schema = schemaValidator[payloadKey] as SchemaValidator<Fund | Record>;
-    const payload = req[payloadKey];
-    const invalidKey = Object.keys(payload)
-      .find(key => !(key in schema));
+    const payloadKeys = Object.keys(schemaValidator) as ('body' | 'params' | 'query')[];
 
-    if (invalidKey)  return res.status(400).json({ message: `Invalid key: "${invalidKey}"`});
+    for (const payloadKey of payloadKeys) {
+      const schema = schemaValidator[payloadKey] as SchemaValidator<Fund | Record>;
+      const payload = req[payloadKey] || {};
+      const invalidKey = Object.keys(payload)
+        .find(key => !(key in schema));
 
-    const invalidValue = Object.entries(schema).find(([key, value]) => {
-      const validator = value as (val: any) => boolean;
-      return validator(payload[key]);
-    });
+      if (invalidKey)  return res
+        .status(400)
+        .json({ message: `Invalid key: "${invalidKey}"`});
 
-    if (invalidValue) return res.status(400).json({ message: `Invalid value for: "${invalidValue[0]}"`});
+      const [invalidValue] = Object.entries(schema).find(([key, value]) => {
+        const validatorFn = value as (val: any) => boolean;
+        const validValue = validatorFn(payload[key]);
+        return !validValue;
+      }) || [undefined];
+
+      if (invalidValue) return res
+        .status(400)
+        .json({ message: `"${invalidValue}" Cannot be "${payload[invalidValue]}"` });
+    }
+    next()
   }
-  console.log('validation passed');
-  next()
-}
 };

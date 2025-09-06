@@ -16,14 +16,14 @@ router.get('/', validateSchema(fundReqSchemas.read), (req, res, next) => {
 router.patch('/:id', validateSchema(fundReqSchemas.update), (req, res, next) => {
   const payload = { ...req.body, id: req.params.id };
   update(payload)
-    .then((data) => res.sendStatus(204))
+    .then(() => res.sendStatus(204))
     .catch((error) => next(error))
 });
 
 router.post('/', validateSchema(fundReqSchemas.create), (req, res, next) => {
   const payload = req.body;
   create(payload)
-    .then((data) => res.status(201).json(data))
+    .then(() => res.status(201).json())
     .catch((error) => next(error))
 });
 

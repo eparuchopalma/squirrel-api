@@ -1,68 +1,36 @@
-import { isUUID } from 'validator';
-import { SchemaValidator } from '../types';
 import Fund from '../models/fundModel';
+import { SchemaValidator } from '../types';
+import { isUUID, isString, isPresent, isUser } from './valueValidators';
 
 const create: SchemaValidator<Fund> = {
   body: {
-    name: (value: any) => [
-      typeof value === 'string',
-      value.length > 0,
-      value.length <= 50
-    ].some(isValid => !isValid),
-    user_id: (value: any) => [
-      typeof value === 'string',
-      value.length > 20,
-      value.includes('|')
-    ].some(isValid => !isValid)
+    name: (v: any) => isPresent(v) && isString(v) && v.length <= 50 && v.length > 0,
+    user_id: (value: any) => isPresent(value) && isUser(value),
   }
 };
 
 const destroy: SchemaValidator<Fund> = {
   body: {
-    user_id: (value: any) => [
-      typeof value === 'string',
-      value.length > 20,
-      value.includes('|')
-    ].some(isValid => !isValid)
+    user_id: (value: any) => isPresent(value) && isUser(value),
   },
   params: {
-    id: (value: any) => [
-      typeof value === 'string',
-      value.length === 36,
-      isUUID(value)
-    ].some(isValid => !isValid)
+    id: (value: any) => isPresent(value) && isUUID(value)
   }
 };
 
 const read: SchemaValidator<Fund> = {
   body: {
-    user_id: (value: any) => [
-      typeof value === 'string',
-      value.length > 20,
-      value.includes('|')
-    ].some(isValid => !isValid)
+    user_id: (value: any) => isPresent(value) && isUser(value),
   }
 };
 
 const update: SchemaValidator<Fund> = {
   body: {
-    name: (value: any) => [
-      typeof value === 'string',
-      value.length > 0,
-      value.length <= 50
-    ].some(isValid => !isValid),
-    user_id: (value: any) => [
-      typeof value === 'string',
-      value.length > 20,
-      value.includes('|')
-    ].some(isValid => !isValid)
+    name: (v: any) => isPresent(v) && isString(v) && v.length <= 50 && v.length > 0,
+    user_id: (value: any) => isPresent(value) && isUser(value),
   },
   params: {
-    id: (value: any) => [
-      typeof value === 'string',
-      value.length === 36,
-      isUUID(value)
-    ].some(isValid => !isValid)
+    id: (value: any) => isPresent(value) && isUUID(value)
   }
 };
 

@@ -19,30 +19,30 @@ import Fund from './fundModel';
   id!: string;
 
   @Column({ allowNull: false })
-  date!: Date;
-
-  @Column({ allowNull: false })
-  type!: number;
-
-  @Column({ allowNull: false })
   amount!: number;
 
+  @ForeignKey(() => Fund)
   @Column
-  tag?: string;
-
-  @Column
-  note?: string;
+  correlated_fund_id?: string;
 
   @Column({ allowNull: false })
-  user_id!: string;
+  date!: Date;
 
   @ForeignKey(() => Fund)
   @Column({ allowNull: false })
   fund_id!: string;
 
-  @ForeignKey(() => Fund)
   @Column
-  correlated_fund_id?: string;
+  note?: string;
+
+  @Column
+  tag?: string;
+
+  @Column({ allowNull: false })
+  type!: number;
+
+  @Column({ allowNull: false })
+  user_id!: string;
 
   @BelongsTo(() => Fund)
   fund!: Fund;
