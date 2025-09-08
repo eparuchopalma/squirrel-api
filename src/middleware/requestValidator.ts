@@ -3,35 +3,54 @@ import { SchemaValidator } from '../types';
 import Fund from '../models/fundModel';
 import Record from '../models/recordModel';
 
-export function bodyValidator(req: Request, res: Response, next: NextFunction) {
-  if (JSON.stringify(req.body)?.includes("<script>")) return res.sendStatus(400);
-  else next();
+type PayloadKey = 'body' | 'params' | 'query';
+type Entity = Fund | Record;
+
+const includesScript = (req: Request, keys: PayloadKey[]) => keys.some((key) => {
+  return JSON.stringify(req[key])?.includes("<script>")
+});
+
+const findInvalidKey = (payload: Partial<Entity>, schema: SchemaValidator<Entity>) => {
+  return Object.keys(payload).find(key => !(key in schema));
 };
 
-export function validateSchema(schemaValidator: SchemaValidator<Fund | Record>) {
+const findFailedTest = (payload: Partial<Entity>, schema: SchemaValidator<Entity>) => {
+  const tests = Object.entries(schema);
+  const failedTest = tests.find(([key, value]) => {
+    const test = value as (val: any) => boolean;
+    const validValue = test(payload[key as keyof Entity]);
+    return !validValue;
+  });
+  return failedTest;
+};
+
+export function validateSchema(schemaValidator: SchemaValidator<Entity>) {
 
   return (req: Request, res: Response, next: NextFunction) => {
-    const payloadKeys = Object.keys(schemaValidator) as ('body' | 'params' | 'query')[];
+
+    const payloadKeys = Object.keys(schemaValidator) as PayloadKey[];
+
+    if (includesScript(req, payloadKeys)) return res
+      .status(400)
+      .json({ message: "Invalid input" });
 
     for (const payloadKey of payloadKeys) {
-      const schema = schemaValidator[payloadKey] as SchemaValidator<Fund | Record>;
+      const schema = schemaValidator[payloadKey] as SchemaValidator<Entity>;
       const payload = req[payloadKey] || {};
-      const invalidKey = Object.keys(payload)
-        .find(key => !(key in schema));
+      const invalidKey = findInvalidKey(payload, schema);
 
       if (invalidKey)  return res
         .status(400)
         .json({ message: `Invalid key: "${invalidKey}"`});
 
-      const [invalidValue] = Object.entries(schema).find(([key, value]) => {
-        const validatorFn = value as (val: any) => boolean;
-        const validValue = validatorFn(payload[key]);
-        return !validValue;
-      }) || [undefined];
+      const failedTest = findFailedTest(payload, schema);
 
-      if (invalidValue) return res
-        .status(400)
-        .json({ message: `"${invalidValue}" Cannot be "${payload[invalidValue]}"` });
+      if (failedTest) {
+        const [invalidValue] = failedTest;
+        return res
+          .status(400)
+          .json({ message: `"${invalidValue}" Cannot be "${payload[invalidValue]}"` });
+      }
     }
     next()
   }
