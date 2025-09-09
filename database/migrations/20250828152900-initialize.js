@@ -26,6 +26,24 @@ module.exports = {
 
     await queryInterface.addIndex('records', ['fund_id']);
     await queryInterface.addIndex('records', ['correlated_fund_id']);
+    await queryInterface.addConstraint('records', {
+      fields: ['user_id', 'date'],
+      type: 'unique',
+      name: 'unique_user_date_constraint'
+    });
+    await queryInterface.addConstraint('funds', {
+      fields: ['user_id', 'name'],
+      type: 'unique',
+      name: 'unique_user_name_constraint',
+    });
+    await queryInterface.addConstraint('funds', {
+      fields: ['amount'],
+      type: 'check',
+      where: {
+        amount: { [Sequelize.Op.gte]: 0 }
+      },
+      name: 'check_amount_non_negative',
+    })
   },
 
   async down (queryInterface, Sequelize) {
