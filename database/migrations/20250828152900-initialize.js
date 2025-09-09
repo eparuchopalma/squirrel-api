@@ -37,12 +37,12 @@ module.exports = {
       name: 'unique_user_name_constraint',
     });
     await queryInterface.addConstraint('funds', {
-      fields: ['amount'],
+      fields: ['balance'],
       type: 'check',
       where: {
-        amount: { [Sequelize.Op.gte]: 0 }
+        balance: { [Sequelize.Op.gte]: 0 }
       },
-      name: 'check_amount_non_negative',
+      name: 'check_balance_non_negative',
     })
   },
 
