@@ -6,7 +6,7 @@ export const isString = (val: any) => typeof val === 'string' && val.length <= 2
 
 export const isNumber = (val: any) => typeof val === 'number' && !isNaN(val);
 
-export const isDate = (val: any) => val instanceof Date && !isNaN(val.getTime());
+export const isDate = (val: any) => !isNaN(new Date(val).getTime());
 
 export const isUser = (val: any) => [
   (v: any) => typeof v === 'string',
