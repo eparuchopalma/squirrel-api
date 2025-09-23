@@ -40,6 +40,35 @@ class RecordService {
     return;
   }
 
+  public async destroy(payload: Payload) {
+    const record = await Record!.findByPk(payload.id);
+    if (!record) throw new Error('Record not found.');
+    const transaction = await sequelize.transaction();
+    try {
+      const { amount, correlated_fund_id, fund_id, type } = record.dataValues;
+      if (type === RecordType.credit) {
+        await testBalance(fund_id, record.dataValues, false);
+      } else if (type === RecordType.fund2fund) {
+        await testBalance(correlated_fund_id, record.dataValues, false);
+        await Fund!.increment({ balance: amount}, {
+        where: {
+          id: record.dataValues.correlated_fund_id,
+          user_id: payload.user_id
+        }, transaction });
+      }
+      await Fund!.increment({ balance: -Number(amount)}, {
+        where: {
+          id: record.dataValues.fund_id,
+          user_id: payload.user_id
+        }, transaction });
+      await record.destroy({ transaction });
+      await transaction.commit();
+    } catch (error) {
+      transaction.rollback();
+      throw error;
+    }
+  }
+
   public read(payload: Payload) {
     return Record!.findAll({
       attributes: { exclude: ['user_id'] },
@@ -50,23 +79,23 @@ class RecordService {
   }
 
   public async update(payload: Payload) {
-    const originalVersion = await Record!.findByPk(payload.id) as recordModel;
-    const updateKeys = getUpdateKeys(originalVersion.dataValues, payload);
+    const recordStored = await Record!.findByPk(payload.id) as recordModel;
+    const updateKeys = getUpdateKeys(recordStored.dataValues, payload);
 
     if (updateKeys.length === 0) throw new Error('Nothing to update.');
 
     const textKeys = ['note', 'tag'];
     const onlyTextKeys = updateKeys.every(key => textKeys.includes(key));
 
-    if (onlyTextKeys) return originalVersion.update(payload, { returning: false });
-    if (payload.date) await testDate(payload.date, originalVersion.dataValues.user_id!);
+    if (onlyTextKeys) return recordStored.update(payload, { returning: false });
+    if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
 
     const transaction = await sequelize.transaction();
 
     try {
-      const editedVersion = { ...originalVersion.dataValues, ...payload };
-      await handleFundUpdates(originalVersion, editedVersion, transaction);
-      await originalVersion.update(payload, { returning: false, transaction });
+      const recordEdited = { ...recordStored.dataValues, ...payload };
+      await handleFundUpdates(recordStored, recordEdited, transaction);
+      await recordStored.update(payload, { returning: false, transaction });
       await transaction.commit();
     } catch (error) {
       transaction.rollback();
@@ -144,13 +173,12 @@ function getRecordEffectOnFund(fund_id: string, record: recordModel) {
   else return 0;
 }
 
-async function testBalance(fund_id: string, payload: Payload) {
+async function testBalance(fund_id: string, payload: Payload, includingPayload = true) {
   const fundRecords = await getFundRecords(fund_id, payload.id) as Payload[];
-
-  const includePayload = [payload.fund_id, payload.correlated_fund_id]
+  const payloadIsRelated = [payload.fund_id, payload.correlated_fund_id]
     .includes(fund_id);
 
-  if (includePayload) fundRecords.push(payload);
+  if (includingPayload && payloadIsRelated) fundRecords.push(payload);
 
   fundRecords.sort((a, b) => new Date(a.date!) > new Date(b.date!) ? 1 : -1);
 
