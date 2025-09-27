@@ -7,7 +7,7 @@ type PayloadKey = 'body' | 'params' | 'query';
 type Entity = Fund | Record;
 
 const includesScript = (req: Request, keys: PayloadKey[]) => keys.some((key) => {
-  return JSON.stringify(req[key])?.includes("<script>")
+  return JSON.stringify(req[key])?.includes('<script>')
 });
 
 const findInvalidKey = (payload: Partial<Entity>, schema: SchemaValidator<Entity>) => {
@@ -24,7 +24,7 @@ const findFailedTest = (payload: Partial<Entity>, schema: SchemaValidator<Entity
   return failedTest;
 };
 
-export function validateSchema(schemaValidator: SchemaValidator<Entity>) {
+function validate(schemaValidator: SchemaValidator<Entity>) {
 
   return (req: Request, res: Response, next: NextFunction) => {
 
@@ -32,7 +32,7 @@ export function validateSchema(schemaValidator: SchemaValidator<Entity>) {
 
     if (includesScript(req, payloadKeys)) return res
       .status(400)
-      .json({ message: "Invalid input" });
+      .json({ message: 'Invalid input' });
 
     for (const payloadKey of payloadKeys) {
       const schema = schemaValidator[payloadKey] as SchemaValidator<Entity>;
@@ -54,4 +54,6 @@ export function validateSchema(schemaValidator: SchemaValidator<Entity>) {
     }
     next()
   }
-};
+}
+
+export default validate;
