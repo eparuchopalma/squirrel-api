@@ -1,4 +1,4 @@
-import { Op, Transaction } from 'sequelize';
+import { ValidationError, EmptyResultError, Op, Transaction } from 'sequelize';
 import sequelize from '../config/sequelize';
 import recordModel from '../models/recordModel';
 
@@ -42,7 +42,7 @@ class RecordService {
 
   public async destroy(payload: Payload) {
     const record = await Record!.findByPk(payload.id);
-    if (!record) throw new Error('Record not found.');
+    if (!record) throw new EmptyResultError('Record not found.');
     const transaction = await sequelize.transaction();
     try {
       const { amount, correlated_fund_id, fund_id, type } = record.dataValues;
@@ -82,7 +82,7 @@ class RecordService {
     const recordStored = await Record!.findByPk(payload.id) as recordModel;
     const updateKeys = getUpdateKeys(recordStored.dataValues, payload);
 
-    if (updateKeys.length === 0) throw new Error('Nothing to update.');
+    if (updateKeys.length === 0) throw new ValidationError('Nothing to update.', []);
 
     const textKeys = ['note', 'tag'];
     const onlyTextKeys = updateKeys.every(key => textKeys.includes(key));
@@ -120,12 +120,14 @@ async function testDate(date: Date, user_id: string) {
 }
 
 function checkFutureDate(date: Date) {
-  if (new Date(date) > new Date()) throw new Error('Date cannot be in future.');
+  if (new Date(date) > new Date()) {
+    throw new ValidationError('Date cannot be in future.', []);
+  } else return;
 }
 
 async function checkDateIsFree({ date, user_id }: { date: Date, user_id: string }) {
   const recordOnDate = await Record!.findOne({ where: { date, user_id } });
-  if (recordOnDate) throw new Error('Date already taken.');
+  if (recordOnDate) throw new ValidationError('Date already taken.', []);
 }
 
 function handleFundUpdates(
@@ -186,11 +188,12 @@ async function testBalance(fund_id: string, payload: Payload, includingPayload =
     const receivesFromFund = fund_id === r.correlated_fund_id;
     const result = balance + (receivesFromFund ? -Number(r.amount) : Number(r.amount));
 
-    if (result < 0) throw new Error('The record would cause inconsistencies.' +
-      `\nOn ${formatDate(r.date!)}, `+
-      `fund's balance (${fixAmount(balance)}) ` +
-      `couldn't cover the amount of ${fixAmount(r.amount!)}.`
-    );
+    if (result < 0) {
+      const message = `\nOn ${formatDate(r.date!)}, ` +
+        `fund's balance (${fixAmount(balance)}) ` +
+        `couldn't cover the amount of ${fixAmount(r.amount!)}.`;
+      throw new ValidationError(message, []);
+    }
 
     return result;
   }, 0);
