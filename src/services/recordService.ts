@@ -18,6 +18,7 @@ class RecordService {
     try {
       const { amount, correlated_fund_id, date, fund_id, type, user_id } = payload;
 
+      checkAmount(payload);
       checkCorrelatedFund(payload);
       await testDate(date!, user_id!);
 
@@ -94,7 +95,10 @@ class RecordService {
     if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
 
     const recordEdited = { ...recordStored.dataValues, ...payload };
+
+    checkAmount(recordEdited);
     checkCorrelatedFund(recordEdited);
+
     const transaction = await sequelize.transaction();
 
     try {
@@ -121,6 +125,14 @@ function fixAmount(amount: number) {
 async function testDate(date: Date, user_id: string) {
   checkFutureDate(date);
   await checkDateIsFree({ date, user_id });
+}
+
+function checkAmount(payload: Payload) {
+  if (payload.type === RecordType.credit && Number(payload.amount) <= 0) {
+    throw new ValidationError('Amount must be positive for credit.', []);
+  } else if (payload.type !== RecordType.credit && Number(payload.amount) >= 0) {
+    throw new ValidationError('Amount must be negative for debit and fund2fund.', []);
+  }
 }
 
 function checkCorrelatedFund(payload: Payload) {
