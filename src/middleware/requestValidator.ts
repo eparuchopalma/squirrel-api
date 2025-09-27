@@ -39,7 +39,7 @@ function validate(schemaValidator: SchemaValidator<Entity>) {
       const payload = req[payloadKey] || {};
       const invalidKey = findInvalidKey(payload, schema);
 
-      if (invalidKey)  return res
+      if (invalidKey) return res
         .status(400)
         .json({ message: `Invalid key: "${invalidKey}"`});
 

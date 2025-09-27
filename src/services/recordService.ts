@@ -18,6 +18,7 @@ class RecordService {
     try {
       const { amount, correlated_fund_id, date, fund_id, type, user_id } = payload;
 
+      checkCorrelatedFund(payload);
       await testDate(date!, user_id!);
 
       if (type !== RecordType.credit) await testBalance(fund_id!, payload);
@@ -28,9 +29,11 @@ class RecordService {
         balance: amount
       }, { transaction, where: { id: fund_id } });
 
-      if (type === RecordType.fund2fund) await Fund!.increment({
-        balance: -Number(amount)
-      }, { transaction, where: { id: correlated_fund_id }});
+      if (type === RecordType.fund2fund) {
+        await Fund!.increment({
+          balance: -Number(amount)
+        }, { transaction, where: { id: correlated_fund_id }});
+      }
 
       await transaction.commit();
     } catch (error) {
@@ -90,10 +93,11 @@ class RecordService {
     if (onlyTextKeys) return recordStored.update(payload, { returning: false });
     if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
 
+    const recordEdited = { ...recordStored.dataValues, ...payload };
+    checkCorrelatedFund(recordEdited);
     const transaction = await sequelize.transaction();
 
     try {
-      const recordEdited = { ...recordStored.dataValues, ...payload };
       await handleFundUpdates(recordStored, recordEdited, transaction);
       await recordStored.update(payload, { returning: false, transaction });
       await transaction.commit();
@@ -117,6 +121,17 @@ function fixAmount(amount: number) {
 async function testDate(date: Date, user_id: string) {
   checkFutureDate(date);
   await checkDateIsFree({ date, user_id });
+}
+
+function checkCorrelatedFund(payload: Payload) {
+  if (payload.type === RecordType.fund2fund && !payload.correlated_fund_id) {
+    throw new ValidationError('A correlated fund is required for fund2fund.', []);
+  } else if (payload.type !== RecordType.fund2fund && payload.correlated_fund_id) {
+    throw new ValidationError('Correlated fund is only allowed for fund2fund.', []);
+  } else if (payload.fund_id === payload.correlated_fund_id) {
+    throw new ValidationError('Funds cannot be equal.', []);
+  }
+  return;
 }
 
 function checkFutureDate(date: Date) {
