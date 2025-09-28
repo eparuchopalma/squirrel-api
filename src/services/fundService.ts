@@ -37,12 +37,13 @@ class FundService {
   }
 
   public read({ user_id }: Payload) {
-    return Fund!.findAll({
+    return Fund!.findCreateFind({
       attributes: { exclude: ['user_id'] },
       order: [['name', 'ASC']],
       raw: true,
       where: { user_id },
-    })
+      defaults: { name: 'Main', is_main: true, user_id, balance: 0 }
+    });
   }
 
   public async update({ id, user_id, ...fields }: Payload) {
