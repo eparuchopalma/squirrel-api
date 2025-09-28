@@ -4,7 +4,7 @@ import RecordService from '../services/recordService';
 const { read, update, create, destroy } = new RecordService();
 
 function readRecordHandler(req: Request, res: Response, next: NextFunction) {
-  const payload = req.body;
+  const payload = { user_id: req.body.user_id, ...req.query };
   read(payload)
     .then((data) => res.json(data))
     .catch((error: Error) => next(error))

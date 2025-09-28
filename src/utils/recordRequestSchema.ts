@@ -28,7 +28,7 @@ const read: SchemaValidator<Record & { fromDate: string , toDate: string }> = {
   body: {
     user_id: (value: any) => isPresent(value) && isUser(value)
   },
-  params: {
+  query: {
     fromDate: (value: any) => !isPresent(value) || isDate(value),
     toDate: (value: any) => !isPresent(value) || isDate(value),
     fund_id: (value: any) => !isPresent(value) || isUUID(value),

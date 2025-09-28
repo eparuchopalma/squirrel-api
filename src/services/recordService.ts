@@ -2,6 +2,7 @@ import { ValidationError, EmptyResultError, Op, Transaction } from 'sequelize';
 import sequelize from '../config/sequelize';
 import recordModel from '../models/recordModel';
 import fundModel from '../models/fundModel';
+import e from 'express';
 
 type Payload = Partial<recordModel>;
 
@@ -72,13 +73,15 @@ class RecordService {
     }
   }
 
-  public read(payload: Payload) {
-    return Record!.findAll({
+  public async read({ user_id, ...filters }: Payload & { fromDate?: Date, toDate?: Date }) {
+    normalizeFilters(filters);
+    const data = await Record!.findAll({
       attributes: { exclude: ['user_id'] },
       order: [['date', 'ASC']],
       raw: true,
-      where: payload,
+      where: { user_id, ...filters },
     });
+    return data;
   }
 
   public async update(payload: Payload) {
@@ -249,6 +252,38 @@ function getFundRecords(fund_id: string, exceptID?: string) {
   const filters: any = { [Op.or]: [{ fund_id }, { correlated_fund_id: fund_id }] };
   if (exceptID) filters.id = { [Op.ne]: exceptID };
   return Record!.findAll({ where: filters, raw: true });
+}
+
+function normalizeFilters(filters: any) {
+  if (filters.fromDate || filters.toDate) setDateFilter(filters);
+  if (filters.note) setNoteFilter(filters);
+  if (filters.fund_id) setFundFilter(filters);
+}
+
+function setDateFilter(filters: any) {
+  if (filters.fromDate && filters.toDate) {
+    filters.date = { [Op.between]: [filters.fromDate, filters.toDate] };
+    delete filters.fromDate;
+    delete filters.toDate;
+  } else if (filters.fromDate) {
+    filters.date = { [Op.gte ]: filters.fromDate }
+    delete filters.fromDate;
+  } else {
+    filters.date = { [Op.lte ]: filters.toDate }
+    delete filters.toDate;
+  }
+}
+
+function setNoteFilter(filters: any) {
+  filters.note = { [Op.like]: `%${filters.note}%` };
+}
+
+function setFundFilter(filters: any) {
+  filters[Op.or] = [
+    { fund_id: filters.fund_id },
+    { correlated_fund_id: filters.fund_id }
+  ];
+  delete filters.fund_id;
 }
 
 async function validateFunds(payload: Payload) {

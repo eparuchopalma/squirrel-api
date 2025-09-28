@@ -4,7 +4,7 @@ export const isPresent = (val: any) => val !== null && val !== undefined;
 
 export const isString = (val: any) => typeof val === 'string' && val.length <= 250;
 
-export const isNumber = (val: any) => typeof val === 'number' && !isNaN(val);
+export const isNumber = (val: any) => !isNaN(val);
 
 export const isDate = (val: any) => !isNaN(new Date(val).getTime());
 
