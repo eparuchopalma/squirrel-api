@@ -1,6 +1,7 @@
 import { ValidationError, EmptyResultError, Op, Transaction } from 'sequelize';
 import sequelize from '../config/sequelize';
 import recordModel from '../models/recordModel';
+import fundModel from '../models/fundModel';
 
 type Payload = Partial<recordModel>;
 
@@ -14,27 +15,23 @@ const { Fund, Record } = sequelize.models;
 
 class RecordService {
   public async create(payload: Payload) {
+    const { amount, correlated_fund_id, date, fund_id, type, user_id } = payload;
+    checkAmount(payload);
+    checkCorrelatedFund(payload);
     const transaction = await sequelize.transaction();
     try {
-      const { amount, correlated_fund_id, date, fund_id, type, user_id } = payload;
-
-      checkAmount(payload);
-      checkCorrelatedFund(payload);
       await testDate(date!, user_id!);
-
+      await validateFunds(payload);
       if (type !== RecordType.credit) await testBalance(fund_id!, payload);
 
       await Record!.create(payload, { transaction });
-
       await Fund!.increment({
         balance: amount
-      }, { transaction, where: { id: fund_id } });
+      }, { where: { id: fund_id, user_id }, transaction });
 
-      if (type === RecordType.fund2fund) {
-        await Fund!.increment({
-          balance: -Number(amount)
-        }, { transaction, where: { id: correlated_fund_id }});
-      }
+      if (type === RecordType.fund2fund) await Fund!.increment({
+        balance: -Number(amount)
+      }, { transaction, where: { id: correlated_fund_id, user_id }});
 
       await transaction.commit();
     } catch (error) {
@@ -93,6 +90,7 @@ class RecordService {
 
     if (onlyTextKeys) return recordStored.update(payload, { returning: false });
     if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
+    if (payload.fund_id || payload.correlated_fund_id) await validateFunds(payload);
 
     const recordEdited = { ...recordStored.dataValues, ...payload };
 
@@ -102,7 +100,7 @@ class RecordService {
     const transaction = await sequelize.transaction();
 
     try {
-      await handleFundUpdates(recordStored, recordEdited, transaction);
+      await handleBalanceUpdate(recordStored, recordEdited, transaction);
       await recordStored.update(payload, { returning: false, transaction });
       await transaction.commit();
     } catch (error) {
@@ -157,7 +155,7 @@ async function checkDateIsFree({ date, user_id }: { date: Date, user_id: string 
   if (recordOnDate) throw new ValidationError('Date already taken.', []);
 }
 
-function handleFundUpdates(
+function handleBalanceUpdate(
   original: recordModel,
   payload: recordModel,
   transaction: Transaction
@@ -246,6 +244,28 @@ function getFundRecords(fund_id: string, exceptID?: string) {
   const filters: any = { [Op.or]: [{ fund_id }, { correlated_fund_id: fund_id }] };
   if (exceptID) filters.id = { [Op.ne]: exceptID };
   return Record!.findAll({ where: filters, raw: true });
+}
+
+async function validateFunds(payload: Payload) {
+  const fund = await Fund!.findOne({
+    where: { id: payload.fund_id, user_id: payload.user_id },
+    raw: true
+  }) as fundModel | null;
+
+  if (!fund) throw new EmptyResultError('Fund not found.');
+
+  if (payload.type === RecordType.credit && !fund.is_main) throw new ValidationError(
+    'Credits are only allowed on main funds.', []);
+
+  if (payload.type === RecordType.fund2fund) {
+    const correlatedFund = await Fund!.findOne({
+      where: { id: payload.correlated_fund_id, user_id: payload.user_id },
+      raw: true
+    }) as fundModel | null;
+    if (!correlatedFund) throw new EmptyResultError('Correlated fund not found.');
+  }
+
+  return;
 }
 
 export default RecordService;
