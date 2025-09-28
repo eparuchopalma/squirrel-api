@@ -1,7 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import FundService from '../services/fundService';
 
-const { read, update, create } = new FundService();
+const { create, destroy, read, update } = new FundService();
+
+function createFundHandler(req: Request, res: Response, next: NextFunction) {
+  const payload = req.body;
+  create(payload)
+    .then(() => res.sendStatus(201))
+    .catch((error) => next(error))
+}
+
+function destroyFundHandler(req: Request, res: Response, next: NextFunction) {
+  const payload = { id: req.params.id, user_id: req.body.user_id };
+  destroy(payload)
+    .then(() => res.sendStatus(204))
+    .catch((error) => next(error))
+}
 
 function readFundHandler(req: Request, res: Response, next: NextFunction) {
   const payload = req.body;
@@ -17,15 +31,9 @@ function updateFundHandler(req: Request, res: Response, next: NextFunction) {
     .catch((error) => next(error))
 }
 
-function createFundHandler(req: Request, res: Response, next: NextFunction) {
-  const payload = req.body;
-  create(payload)
-    .then(() => res.sendStatus(201))
-    .catch((error) => next(error))
-}
-
 export default {
+  create: createFundHandler,
+  destroy: destroyFundHandler,
   read: readFundHandler,
   update: updateFundHandler,
-  create: createFundHandler,
 }

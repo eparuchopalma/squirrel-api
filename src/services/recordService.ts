@@ -42,7 +42,9 @@ class RecordService {
   }
 
   public async destroy(payload: Payload) {
-    const record = await Record!.findByPk(payload.id);
+    const record = await Record!.findOne({
+      where: { id: payload.id, user_id: payload.user_id }
+    });
     if (!record) throw new EmptyResultError('Record not found.');
     const transaction = await sequelize.transaction();
     try {
