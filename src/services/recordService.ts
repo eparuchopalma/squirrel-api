@@ -80,9 +80,12 @@ class RecordService {
   }
 
   public async update(payload: Payload) {
-    const recordStored = await Record!.findByPk(payload.id) as recordModel;
-    const updateKeys = getUpdateKeys(recordStored.dataValues, payload);
+    const recordStored = await Record!.findOne({
+      where: { id: payload.id, user_id: payload.user_id }
+    }) as recordModel;
+    if (!recordStored) throw new EmptyResultError('Record not found.');
 
+    const updateKeys = getUpdateKeys(recordStored.dataValues, payload);
     if (updateKeys.length === 0) throw new ValidationError('Nothing to update.', []);
 
     const textKeys = ['note', 'tag'];
