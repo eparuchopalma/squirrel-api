@@ -9,7 +9,7 @@ type Payload = Partial<fundModel>;
 
 class FundService {
   public create(payload: Payload) {
-    return Fund!.create(payload, { returning: false });
+    return Fund!.create(payload, { raw: true });
   }
 
   public async destroy({ id, user_id }: Payload) {
@@ -36,14 +36,15 @@ class FundService {
     } 
   }
 
-  public read({ user_id }: Payload) {
-    return Fund!.findCreateFind({
+  public async read({ user_id }: Payload) {
+    const funds = await Fund!.findAll({
       attributes: { exclude: ['user_id'] },
       order: [['name', 'ASC']],
       raw: true,
       where: { user_id },
-      defaults: { name: 'Main', is_main: true, user_id, balance: 0 }
     });
+    if (funds.length) return funds;
+    else return this.create({ name: 'Main', is_main: true, user_id, balance: 0 })
   }
 
   public async update({ id, user_id, ...fields }: Payload) {
