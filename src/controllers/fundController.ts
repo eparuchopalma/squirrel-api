@@ -6,7 +6,7 @@ const { create, destroy, read, update } = new FundService();
 function createFundHandler(req: Request, res: Response, next: NextFunction) {
   const payload = req.body;
   create(payload)
-    .then(() => res.sendStatus(201))
+    .then((data) => res.status(201).json(data))
     .catch((error) => next(error))
 }
 
