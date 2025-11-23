@@ -25,21 +25,22 @@ class RecordService {
       await validateFunds(payload);
       if (type !== RecordType.credit) await testBalance(fund_id!, payload);
 
-      await Record!.create(payload, { transaction });
+      const data = await Record!.create(payload, { transaction });
       await Fund!.increment({
         balance: amount
       }, { where: { id: fund_id, user_id }, transaction });
-
+      
       if (type === RecordType.fund2fund) await Fund!.increment({
         balance: -Number(amount)
       }, { transaction, where: { id: correlated_fund_id, user_id }});
-
+      
       await transaction.commit();
+      delete data.dataValues.user_id;
+      return data;
     } catch (error) {
       await transaction.rollback();
       throw error;
     }
-    return;
   }
 
   public async destroy(payload: Payload) {

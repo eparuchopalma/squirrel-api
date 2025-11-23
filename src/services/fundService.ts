@@ -8,8 +8,10 @@ const { Fund, Record } = sequelize.models;
 type Payload = Partial<fundModel>;
 
 class FundService {
-  public create(payload: Payload) {
-    return Fund!.create(payload, { raw: true });
+  public async create(payload: Payload) {
+    const data = await Fund!.create(payload, { raw: true });
+    delete data.dataValues.user_id;
+    return data;
   }
 
   public async destroy({ id, user_id }: Payload) {
