@@ -13,14 +13,14 @@ function readRecordHandler(req: Request, res: Response, next: NextFunction) {
 function updateRecordHandler(req: Request, res: Response, next: NextFunction) {
   const payload = { ...req.body, id: req.params.id };
   update(payload)
-    .then(() => res.sendStatus(204))
+    .then((data) => res.status(200).json(data))
     .catch((error) => next(error))
 }
 
 function createRecordHandler(req: Request, res: Response, next: NextFunction) {
   const payload = req.body;
   create(payload)
-    .then((data) => res.status(201).json(data))
+    .then(() => res.sendStatus(201))
     .catch((error) => next(error))
 }
 

@@ -27,7 +27,7 @@ function readFundHandler(req: Request, res: Response, next: NextFunction) {
 function updateFundHandler(req: Request, res: Response, next: NextFunction) {
   const payload = { ...req.body, id: req.params.id };
   update(payload)
-    .then(() => res.sendStatus(204))
+    .then((data) => res.status(200).json(data))
     .catch((error) => next(error))
 }
 

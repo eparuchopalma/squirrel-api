@@ -25,7 +25,7 @@ class RecordService {
       await validateFunds(payload);
       if (type !== RecordType.credit) await testBalance(fund_id!, payload);
 
-      const data = await Record!.create(payload, { transaction });
+      await Record!.create(payload, { transaction });
       await Fund!.increment({
         balance: amount
       }, { where: { id: fund_id, user_id }, transaction });
@@ -35,8 +35,7 @@ class RecordService {
       }, { transaction, where: { id: correlated_fund_id, user_id }});
       
       await transaction.commit();
-      delete data.dataValues.user_id;
-      return data;
+      return;
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -97,7 +96,11 @@ class RecordService {
     const textKeys = ['note', 'tag'];
     const onlyTextKeys = updateKeys.every(key => textKeys.includes(key));
 
-    if (onlyTextKeys) return recordStored.update(payload, { returning: false });
+    if (onlyTextKeys) {
+      const data = await recordStored.update(payload);
+      delete data.dataValues.user_id
+      return data.dataValues
+    }
     if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
     if (payload.fund_id || payload.correlated_fund_id) await validateFunds(payload);
 
@@ -109,14 +112,15 @@ class RecordService {
     const transaction = await sequelize.transaction();
 
     try {
-      await handleBalanceUpdate(recordStored, recordEdited, transaction);
-      await recordStored.update(payload, { returning: false, transaction });
+      await handleBalanceUpdate(recordStored.dataValues, recordEdited, transaction);
+      const data = await recordStored.update(payload, { transaction });
+      delete data.dataValues.user_id
       await transaction.commit();
+      return data.dataValues
     } catch (error) {
       transaction.rollback();
       throw error;
     }
-    return;
   }
 
 }
