@@ -22,7 +22,8 @@ class RecordService {
     const transaction = await sequelize.transaction();
     try {
       await testDate(date!, user_id!);
-      await validateFunds(payload);
+      await validateFund(fund_id!, user_id!);
+      if (type === RecordType.fund2fund) await validateCorrelated(correlated_fund_id!, user_id!);
       if (type !== RecordType.credit) await testBalance(fund_id!, payload);
 
       await Record!.create(payload, { transaction });
@@ -95,28 +96,46 @@ class RecordService {
 
     const textKeys = ['note', 'tag'];
     const onlyTextKeys = updateKeys.every(key => textKeys.includes(key));
-
+    
     if (onlyTextKeys) {
       const data = await recordStored.update(payload);
       delete data.dataValues.user_id
       return data.dataValues
     }
-    if (payload.date) await testDate(payload.date, recordStored.dataValues.user_id!);
-    if (payload.fund_id || payload.correlated_fund_id) await validateFunds(payload);
+
+    if (payload.date) await testDate(payload.date, payload.user_id!);
+
+    if (payload.fund_id) {
+      const payloadFund = payload.fund_id
+        ? await validateFund(payload.fund_id, payload.user_id!)
+        : null;
+      const type = payload.type ?? recordStored.dataValues.type;
+      if (type === RecordType.credit && (payload.fund_id || payload.type)) {
+        const fund = payloadFund ?? await validateFund(recordStored.dataValues.fund_id, payload.user_id!);
+        if (!fund.dataValues.is_main) throw new ValidationError('Credit records must be associated to main fund.', []);
+      }
+    }
+
+    if (payload.correlated_fund_id) validateFund(payload.correlated_fund_id, payload.user_id!);
 
     const recordEdited = { ...recordStored.dataValues, ...payload };
 
     checkAmount(recordEdited);
     checkCorrelatedFund(recordEdited);
-
+    
     const transaction = await sequelize.transaction();
 
     try {
-      await handleBalanceUpdate(recordStored.dataValues, recordEdited, transaction);
-      const data = await recordStored.update(payload, { transaction });
-      delete data.dataValues.user_id
+      const funds = await handleBalanceUpdate(recordStored.dataValues, recordEdited, transaction)
+        .then((result) => result.flat(3)
+        .filter(f => isNaN(f as any)) as fundModel[]
+      );
+      funds.forEach((f: any) => delete f.user_id);
+      const record = await recordStored.update(payload, { transaction });
+      delete record.dataValues.user_id;
       await transaction.commit();
-      return data.dataValues
+      const data = { record: record.dataValues, funds };
+      return data;
     } catch (error) {
       transaction.rollback();
       throw error;
@@ -181,9 +200,8 @@ function handleBalanceUpdate(
     fundsToUpdate.push(payload.correlated_fund_id);
   }
 
-  return Promise.all(Array.from(fundsToUpdate, (fund_id: string) => {
-    return updateFundBalance(fund_id, original, payload, transaction)
-  }));
+  return Promise
+    .all(fundsToUpdate.map(f => updateFundBalance(f, original, payload, transaction)));
 }
 
 async function updateFundBalance(
@@ -248,7 +266,6 @@ function getUpdateKeys(recordStored: recordModel, payload: Payload) {
       else if (k === 'date') notEqual = recordStored[k]
         .toISOString() !== (new Date(payload[k]!) as Date).toISOString();
       else notEqual = recordStored[k] !== payload[k];
-      if (!notEqual) delete payload[k];
       return notEqual;
     });
 }
@@ -291,26 +308,16 @@ function setFundFilter(filters: any) {
   delete filters.fund_id;
 }
 
-async function validateFunds(payload: Payload) {
-  const fund = await Fund!.findOne({
-    where: { id: payload.fund_id, user_id: payload.user_id },
-    raw: true
-  }) as fundModel | null;
-
+async function validateFund(id: string, user_id: string) {
+  const fund = await Fund!.findOne({ where: { id, user_id } });
   if (!fund) throw new EmptyResultError('Fund not found.');
+  return fund;
+}
 
-  if (payload.type === RecordType.credit && !fund.is_main) throw new ValidationError(
-    'Credits are only allowed on main funds.', []);
-
-  if (payload.type === RecordType.fund2fund) {
-    const correlatedFund = await Fund!.findOne({
-      where: { id: payload.correlated_fund_id, user_id: payload.user_id },
-      raw: true
-    }) as fundModel | null;
-    if (!correlatedFund) throw new EmptyResultError('Correlated fund not found.');
-  }
-
-  return;
+async function validateCorrelated(id: string, user_id: string) {
+  const correlatedFund = await Fund!.findOne({ where: { id, user_id } });
+  if (!correlatedFund) throw new EmptyResultError('Correlated fund not found.');
+  return correlatedFund;
 }
 
 export default RecordService;
